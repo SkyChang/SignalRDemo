@@ -1,0 +1,105 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+</head>
+<body>
+      <div>
+          @*No.1 NoKo
+          <input type="text" id="msg" />
+          <input type="button" id="broadcast" value="送出" />
+          <ul id="messages"></ul>
+          *@
+          <input data-bind="value: msg" type="text"/>
+          <input type="button" value="送出" data-bind="click: $root.sendMessage"/>
+          <ul data-bind="foreach: messages">
+              <li data-bind="text: message "></li>
+          </ul>
+  </div>
+</body>
+</html>
+@* 持續連線
+<script src="http://code.jquery.com/jquery-1.7.min.js" type="text/javascript"></script>
+<script src="Scripts/jquery.signalR-1.0.0-alpha2.min.js" type="text/javascript"></script>
+  <script type="text/javascript">
+      $(function () {
+          var connection = $.connection('/echo');
+
+          connection.received(function (data) {
+              $('#messages').append('<li>' + data + '</li>');
+          });
+
+          connection.start();
+
+          $("#broadcast").click(function () {
+              connection.send($('#msg').val());
+          });
+      });
+  </script>
+*@
+
+<script src="Scripts/jquery-2.0.3.js"></script>
+<script src="Scripts/Knockout-3.0.0.debug.js"></script>
+<script src="Scripts/jquery.signalR-2.0.0.min.js" type="text/javascript"></script>
+<!--SignalR 會自動建立相關的 JavaScript，並放置在signalr/hubs的路徑下，MVC要多設定~/代表根目錄。-->
+<script src="~/signalr/hubs" type="text/javascript"></script>
+<!--<script src="/signalr/hubs" type="text/javascript"></script> ASP.NET 版本-->
+
+@* No.1 No KO
+<script type="text/javascript">
+    $(function () {
+        // 建立chat物件 名稱必須與Server端的Class相同，且必須為小寫
+        var chat = $.connection.chat;
+
+        //定義addMessage方法，使Server可以呼叫他，
+        //當Server呼叫此方法的時候，就會在ol裡面加上訊息
+        chat.client.addMessage = function (message) {
+            $('#messages').append('<li>' + message + '</li>');
+        };
+
+        $("#broadcast").click(function () {
+            //呼叫Server端的send方法。
+            chat.server.send($('#msg').val());
+        });
+
+        //啟動連線
+        $.connection.hub.start({ transport: 'longPolling' });
+    });
+</script>
+*@
+
+@*Use KO*@
+<script type="text/javascript">
+    // 建立chat物件 名稱必須與Server端的Class相同，且必須為小寫
+    var chat = $.connection.chat;
+
+    function MyViewModel() {
+        var self = this;
+        self.msg = ko.observable("");
+        self.messages = ko.observableArray();
+        self.sendMessage = function () {
+            //呼叫Server端的send方法。
+            chat.server.send(self.msg());
+        };
+    }
+
+    $(function () {
+        var vm = new MyViewModel();
+        ko.applyBindings(vm);
+
+        //定義addMessage方法，使Server可以呼叫他，
+        //當Server呼叫此方法的時候，就會在ol裡面加上訊息
+        chat.client.addMessage = function (message) {
+            vm.messages.push({ message: message });
+        };
+
+        //啟動連線
+        $.connection.hub.start({ transport: 'longPolling' });
+    });
+</script>
